@@ -1,6 +1,7 @@
 # DetectarFraudeClick
 Detecção de Fraudes no Tráfego de Cliques em Propagandas de Aplicações Mobile
 
+
 O QUE É
 Este é um projeto da Formação Cientista de Dados da Data Science Academy. Trata da construção de modelos de Machine Learning usando o R como ferramenta.
 
@@ -22,3 +23,4 @@ randomForest
 
 BANCO DE DADOS
 Para esse trabalho foi utilizado a base de dados train_sample.csv, disponível no link https://www.kaggle.com/c/talkingdata-adtracking-fraud-detection/data. Maiores detalhe do desafio também pode ser obtido no site do Kaggle.
+
