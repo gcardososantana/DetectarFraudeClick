@@ -1,0 +1,213 @@
+---
+title: 'Detecção de Fraudes no Tráfego de Cliques em Propagandas de Aplicações Mobile '
+author: "Gilson Santana"
+date: "02/11/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Informações gerais
+
+Projeto da DSA como parte do treiamento Big Data Analytics com R e Microsoft Azure Machine Learning.
+
+O projeto consiste na criação de modelo de Machine Learning que possa prever se um click para download de aplicativo é ou não fraudulento. Para esse trabalho foi utilizado a base de dados train_sample.csv, disponível no link https://www.kaggle.com/c/talkingdata-adtracking-fraud-detection/data. Maiores detalhe do desafio também pode ser obtido no site do Kaggle.
+
+## Conhecendo os dados
+
+```{r Dados}
+library(dplyr)
+library(ROSE)
+library(lubridate)
+
+#Diretório de trabalho
+setwd('D:/OneDrive/EstudosTecnicos/CienciaDados/DtScienceTrab/BigDataRAzure/Cap20/Projeto01')
+
+# Carregar dados - Utilizada a base train-sample.csv devido ao tamanho da base train
+dfDados<- read.csv('train_sample.csv', stringsAsFactors= F, header =T)
+
+str(dfDados)
+# View(dfDados)
+summary(dfDados)
+
+# Tratar valores NA - Não tem valores missing
+any(is.na(dfDados))
+
+```
+
+
+## Análise de atributos
+
+
+
+```{r atributos, echo=TRUE}
+# Relação entre attributed_time e is_attributed. Se baixado implica na existendia do atributed_time, assim
+# essa variável consequência da variável target, não pode figurar como perditora
+     nrow(dfDados %>% filter(attributed_time == ''))
+     nrow(dfDados %>% filter(is_attributed == '0'))
+     nrow(dfDados %>% filter(attributed_time == '' & is_attributed == '0'))
+     dfDados$attributed_time <- NULL
+     
+
+# click_time  - caberia uma análise de série temporal
+     dfDados$dt <- date(dfDados$click_time)
+     dfDados$day <- day(dfDados$dt)
+     dfDados$month <- month(dfDados$dt)
+     dfDados$weekday <- wday(dfDados$dt)
+     dfDados$hour <- hour(dfDados$click_time)
+     str(dfDados)
+
+```
+
+
+## Correlação
+
+```{r correlacao}
+# Análise de correlação
+     library(corrgram)
+     corrgram(dfDados)
+     dfDados %>% select(month) %>% distinct(month) #somente mês 11, é como uma constante
+     dfDados$month <- NULL 
+
+     
+# Transformar variáveis em categóricas
+     toFactor<- function(df, var) {
+          for(v in var) df[,v]= factor(df[,v])
+          return(df)
+     }
+     VarToFactor<- c('app','device','os','channel','is_attributed', 'ip','day', 'weekday', 'hour')
+     dfDados<- toFactor(dfDados, VarToFactor)
+
+     # Divisão dos dados     
+     linhas <- sample(1:nrow(dfDados), 0.7 * nrow(dfDados))
+     dfTrain <- dfDados[linhas,]
+     dfTest <- dfDados[-linhas,]
+
+
+```
+
+## Balanceamento de classe
+
+
+```{r balance}
+     summary(dfTrain$is_attributed)
+     prop.table(table(dfTrain$is_attributed))
+     barplot(prop.table(table(dfTrain$is_attributed)))
+     dfTrainBal <- ROSE(is_attributed ~ ip +
+                          app +
+                          device +
+                          os + 
+                          channel +
+                          day +
+                          weekday +
+                          hour, 
+                     data = dfTrain, seed = 1)$data
+     
+     # Nova Proporção
+     summary(dfTrainBal$is_attributed)
+     prop.table(table(dfTrainBal$is_attributed))
+     barplot(prop.table(table(dfTrainBal$is_attributed)))
+     any(is.na(dfTrainBal))
+
+     # Balancear Teste     
+     dfTestBal <- ROSE(is_attributed ~ ip +
+                            app +
+                            device +
+                            os + 
+                            channel +
+                            day +
+                            weekday +
+                            hour, 
+                       data = dfTest, seed = 1)$data
+     summary(dfTestBal$is_attributed)
+     prop.table(table(dfTestBal$is_attributed))
+     barplot(prop.table(table(dfTestBal$is_attributed)))
+     any(is.na(dfTestBal))
+
+
+```
+
+## Treinando modelos
+
+OBS: O Radom Forest não aceita trabalhar com variáveis categóricas com mais de 53 níveis. Por 
+     esse motivo, algumas Variáveis foram ajustadas para o tipo character.
+
+
+```{r modelos}
+# Treinando modelos
+     library(C50) #algorítimo C5.0
+     library(e1071) #naiveBayes
+     library(randomForest)
+     
+     #Árvore de decisão - algorítimo C5.0
+     m.Arvore1 <- C5.0(is_attributed ~ ., data = dfTrainBal, rules = TRUE)
+
+     # naiveBayes  
+     m.Naive1<- naiveBayes(is_attributed ~ ., data = dfTrainBal, laplace = 0)
+
+     # Radom Forest - Não aceita trabalhar com factor com mais de 53 níveis. Variáveis
+     # ajustadas para o tipo character.
+     dfTrainBalRandom<- dfTrainBal
+     dfTrainBalRandom$ip<- as.character(dfTrainBalRandom$ip)
+     dfTrainBalRandom$app<- as.character(dfTrainBalRandom$app)
+     dfTrainBalRandom$device<- as.character(dfTrainBalRandom$device)
+     dfTrainBalRandom$os<- as.character(dfTrainBalRandom$os)
+     dfTrainBalRandom$channel<- as.character(dfTrainBalRandom$channel)
+     str(dfTrainBalRandom)
+     
+     m.Random1 <- randomForest( is_attributed ~ ip +
+                                  app +
+                                  device +
+                                  os +
+                                  channel +
+                                  day +
+                                  weekday +
+                                  hour,
+                             data = dfTrainBalRandom, 
+                             ntree = 100, nodesize = 10)
+
+```
+
+# Predição e avaliação
+
+```{r predicao}
+# Predições
+     p.Arvore1<- predict(m.Arvore1, dfTestBal)
+     p.Naive1<- predict(m.Naive1, dfTestBal)
+
+     dfTestBalRandom<- dfTestBal
+     dfTestBalRandom$ip<- as.character(dfTestBalRandom$ip)
+     dfTestBalRandom$app<- as.character(dfTestBalRandom$app)
+     dfTestBalRandom$device<- as.character(dfTestBalRandom$device)
+     dfTestBalRandom$os<- as.character(dfTestBalRandom$os)
+     dfTestBalRandom$channel<- as.character(dfTestBalRandom$channel)
+     p.Random1<- predict(m.Random1, dfTestBalRandom)
+     
+#Avaliando predições
+     library(caret)
+     confusionMatrix(dfTestBal$is_attributed, p.Arvore1)
+     confusionMatrix(dfTestBal$is_attributed, p.Naive1)
+     confusionMatrix(dfTestBal$is_attributed, p.Random1)
+     
+# ROC Curves com o ROSE     
+     roc.curve(dfTestBal$is_attributed, p.Arvore1, plotit = T, col = "red", add.roc = F)
+     roc.curve(dfTestBal$is_attributed, p.Naive1, plotit = T, col = "green", add.roc = T)
+     roc.curve(dfTestBal$is_attributed, p.Random1, plotit = T, col = "blue", add.roc = T)
+
+```
+
+
+## Conclusões
+     
+O moldelo baseado no Naive apresentou melhor acurácia, poderia seguir com um 
+refinamento do processo de otimização
+
+O C5.0 vem em seguida. Apresenta também como candidado a seguir com oma otimização
+     
+O modelo de Radom Forest não conseguiu rodar com as variáveis categóricas (factor)
+com mais de 53 níveis. Assim, algumas variáveis foram convertidas para caracter. isso
+pode ter influenciando no seu baixo desempenho.
