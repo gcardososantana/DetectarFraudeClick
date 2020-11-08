@@ -1,6 +1,6 @@
 ---
 title: 'Detecção de Fraudes no Tráfego de Cliques em Propagandas de Aplicações Mobile '
-author: "Gilson Santana"
+author: "Gilson Santana - gcardososantana@gmail.com"
 date: "02/11/2020"
 output:
   html_document: default
@@ -16,84 +16,299 @@ knitr::opts_chunk$set(echo = TRUE)
 Projeto da DSA como parte do treiamento Big Data Analytics com R e Microsoft Azure Machine Learning.
 
 O projeto consiste na criação de modelo de Machine Learning que possa prever se um click para download de aplicativo é ou não fraudulento. Para esse trabalho foi utilizado a base de dados train_sample.csv, disponível no link https://www.kaggle.com/c/talkingdata-adtracking-fraud-detection/data. Maiores detalhe do desafio também pode ser obtido no site do Kaggle.
+Acesso o arquivo Readme para informações complementares.
 
-## Conhecendo os dados
+## Carga & visualização
 
-```{r Dados}
+```{r Dados, echo=TRUE}
+oldw <- getOption("warn")
+options(warn = -1)
+
 library(dplyr)
 library(ROSE)
 library(lubridate)
+library(ggplot2)
+library(gridExtra)
 
 #Diretório de trabalho
 setwd('D:/OneDrive/EstudosTecnicos/CienciaDados/DtScienceTrab/BigDataRAzure/Cap20/Projeto01')
 
 # Carregar dados - Utilizada a base train-sample.csv devido ao tamanho da base train
 dfDados<- read.csv('train_sample.csv', stringsAsFactors= F, header =T)
-
+```
+```{r DadosII, echo=TRUE}
 str(dfDados)
 # View(dfDados)
 summary(dfDados)
 
-# Tratar valores NA - Não tem valores missing
-any(is.na(dfDados))
+```
+
+
+## Explorar
+
+Download (e o não download) do App por número de clicks repetidos para diversas variáveis
+
+A quantidade de cliks que não resultam em download para o mesmo IP chama a atenção, sugere fraude.
+Em outras variáveis essa  característica é semelhante, porém não sugestiona fraude na mesma proporção
+do IP.
+
+
+```{r Explora, echo=TRUE}
+     # ip
+     #par(mfrow = c(1,2))
+     dfAux<- dfDados %>%
+          select(is_attributed, ip) %>% 
+          group_by(is_attributed, ip) %>%
+          summarise(repeticoes=n())
+     
+     plot01<- dfAux %>% filter(is_attributed == 1) %>% arrange(desc(repeticoes)) %>% head(6)  %>%
+          ggplot(aes(factor(ip), repeticoes)) +
+          geom_col() +
+          ggtitle('Qtde clicks-IP-APPs baixados-TOP 6') +
+          xlab('IPs') +
+          ylab('Qtde de clicks por IP')
+     
+     plot02<- dfAux %>% filter(is_attributed == 0) %>% arrange(desc(repeticoes)) %>% head(6) %>%
+          ggplot(aes(factor(ip), repeticoes)) +
+          geom_col() + 
+          ggtitle('Qtde clicks-IP-APPs NÃO baixados-TOP 6') +
+          xlab('IPs') +
+          ylab('Qtde de clicks por IP')
+
+     # app
+     dfAux<- dfDados %>%
+          select(is_attributed, app) %>% 
+          group_by(is_attributed, app) %>%
+          summarise(repeticoes=n())
+     
+     plot03<- dfAux %>% filter(is_attributed == 1) %>% arrange(desc(repeticoes)) %>% head(6)  %>%
+          ggplot(aes(factor(app), repeticoes)) +
+          geom_col() + 
+          ggtitle('Qtde clicks-Aplicativo-APPs baixados-TOP 6') +
+          xlab('Aplicativos') +
+          ylab('Qtde de clicks por Aplicativos')
+     
+     plot04<- dfAux %>% filter(is_attributed == 0) %>% arrange(desc(repeticoes)) %>% head(6) %>%
+          ggplot(aes(factor(app), repeticoes)) +
+          geom_col() + 
+          ggtitle('Qtde clicks-Aplicativo-APPs NÃO baixados-TOP 6') +
+          xlab('Aplicativos') +
+          ylab('Qtde de clicks por Aplicativos')
+     
+
+     # device
+     dfAux<- dfDados %>%
+          select(is_attributed, device) %>% 
+          group_by(is_attributed, device) %>%
+          summarise(repeticoes=n())
+     
+     plot05<- dfAux %>% filter(is_attributed == 1) %>% arrange(desc(repeticoes)) %>% head(6)  %>%
+          ggplot(aes(factor(device), repeticoes)) +
+          geom_col() + 
+          ggtitle('Qtde clicks-Device-APPs baixados-TOP 6') +
+          xlab('Device') +
+          ylab('Qtde de clicks por Device')
+     
+     plot06<- dfAux %>% filter(is_attributed == 0) %>% arrange(desc(repeticoes)) %>% head(6) %>%
+          ggplot(aes(factor(device), repeticoes)) +
+          geom_col() + 
+          ggtitle('Qtde de clicks-Device-APPs NÃO baixados-TOP 6') +
+          xlab('Device') +
+          ylab('Qtde de clicks por Device')
+     
+     # OS (Sistema Operacional)
+     dfAux<- dfDados %>%
+          select(is_attributed, os) %>% 
+          group_by(is_attributed, os) %>%
+          summarise(repeticoes=n())
+     
+     plot07<- dfAux %>% filter(is_attributed == 1) %>% arrange(desc(repeticoes)) %>% head(6)  %>%
+          ggplot(aes(factor(os), repeticoes)) +
+          geom_col() + 
+          ggtitle('Qtde clicks-OS-APPs baixados-TOP 6') +
+          xlab('Device') +
+          ylab('Qtde de clicks por OS')
+     
+     plot08<- dfAux %>% filter(is_attributed == 0) %>% arrange(desc(repeticoes)) %>% head(6) %>%
+          ggplot(aes(factor(os), repeticoes)) +
+          geom_col() + 
+          ggtitle('Qtde clicks-OS-APPs NÃO baixados-TOP 6') +
+          xlab('OS') +
+          ylab('Qtde de clicks por OS')
+     
+     # channel
+     dfAux<- dfDados %>%
+          select(is_attributed, channel) %>% 
+          group_by(is_attributed, channel) %>%
+          summarise(repeticoes=n())
+     
+     plot09<- dfAux %>% filter(is_attributed == 1) %>% arrange(desc(repeticoes)) %>% head(6)  %>%
+          ggplot(aes(factor(channel), repeticoes)) +
+          geom_col() + 
+          ggtitle('Qtde clicks-Channel-APPs baixados-TOP 6') +
+          xlab('Channel') +
+          ylab('Qtde de clicks por Channel')
+     
+     plot10<- dfAux %>% filter(is_attributed == 0) %>% arrange(desc(repeticoes)) %>% head(6) %>%
+          ggplot(aes(factor(channel), repeticoes)) +
+          geom_col() + 
+          ggtitle('Qtde clicks-Channel-APPs NÃO baixados-TOP 6') +
+          xlab('Channel') +
+          ylab('Qtde de clicks por Channel')
+```
+```{r ExploraII, echo=TRUE}
+          #Exibir plots
+     grid.arrange(plot01, plot02, plot03, plot04, ncol=2, nrow=2)
+     grid.arrange(plot05, plot06, plot07, plot08, ncol=2, nrow=2)
+     grid.arrange(plot09, plot10, ncol=2, nrow=1)
 
 ```
 
 
-## Análise de atributos
+## Relação attributed_time X is_attributed
+
+Se App baixado implica na existendia do atributed_time, assim essa variável é consequência da
+variável target (is_attributed), não pode figurar como perditora
 
 
 
-```{r atributos, echo=TRUE}
-# Relação entre attributed_time e is_attributed. Se baixado implica na existendia do atributed_time, assim
-# essa variável consequência da variável target, não pode figurar como perditora
+```{r attributed_time, echo=TRUE}
      nrow(dfDados %>% filter(attributed_time == ''))
      nrow(dfDados %>% filter(is_attributed == '0'))
      nrow(dfDados %>% filter(attributed_time == '' & is_attributed == '0'))
      dfDados$attributed_time <- NULL
-     
-
-# click_time  - caberia uma análise de série temporal
-     dfDados$dt <- date(dfDados$click_time)
-     dfDados$day <- day(dfDados$dt)
-     dfDados$month <- month(dfDados$dt)
-     dfDados$weekday <- wday(dfDados$dt)
-     dfDados$hour <- hour(dfDados$click_time)
-     str(dfDados)
 
 ```
 
 
-## Correlação
+## Análise temporal
 
-```{r correlacao}
-# Análise de correlação
+Variável click_time - indica o momento do click.
+
+
+
+```{r temporal01, echo=TRUE}
+
+     dfDados$dt <- date(dfDados$click_time)
+     dfDados$year <- year(dfDados$dt)
+     dfDados$month <- month(dfDados$dt)
+     dfDados$day <- day(dfDados$dt)
+     dfDados$weekday <- wday(dfDados$dt)
+     dfDados$hour <- hour(dfDados$click_time)
+     str(dfDados)
+     
+     # year e month - essas variáveis tem uma dimensão apenas, é 
+     # como uma constante. A amostra se resuma a um ano e um mês, apenas
+     str(factor(dfDados$year))
+     str(factor(dfDados$month))
+     dfDados$year <- NULL
+     dfDados$month <- NULL 
+     
+     # day e weekday - se tornaram redudantes devido ao tamanho da amostra: apenas
+     # 4 dias consecutivos no mês 11 de 2017, sendo que não contempla fim de semana 
+     # nem sinaliza feriados. Qualquer análise de comportamento na linha semanal ou
+     # de períodos mensais seria "forçação" de barra.
+     # Foi mantida a variável day e eliminada a weekday
+     str(factor(dfDados$day))
+     dfDados %>% distinct(day) %>% arrange(day)
+     str(factor(dfDados$weekday))
+     dfDados %>% distinct(weekday) %>% arrange(weekday)
+     dfDados$weekday <- NULL
+     
+     
+     # hour - Avaliar comportamento por hora
+     # O desbalanceamento da classe is_attributed é muito acentuado, isso limita os insighs
+     # Recomenda-se repetir a análise após o balanceamento da classe. Poderá ser feito em uma
+     # continuidade desse trabalho.
+     # Para um análise temporal, a amostra se apresentou bastante limitada.
+     dfAux<- dfDados %>%
+          select(is_attributed, day, hour) %>% 
+          group_by(is_attributed, day, hour) %>%
+          summarise(qtdCliks=n())
+
+     # Função - plotagem por dia
+     plotD <- function(dia){
+          plotd1<- ggplot(dfAux[dfAux$is_attributed == 1 & dfAux$day == dia,], aes(x = hour, y = qtdCliks)) +
+               geom_line() +
+               ylab("Qtde de clicks") + xlab("Hora") +
+               labs(title = paste("Dia ", as.character(dia), " APP BAIXADOS - Qtde de clicks por hora", sep = ""))
+          
+          plotd2<- ggplot(dfAux[dfAux$is_attributed == 0 & dfAux$day == dia,], aes(x = hour, y = qtdCliks)) + 
+               geom_line() +
+               ylab("Qtde de clicks") + xlab("Hora") +
+               labs(title = paste("Dia ", as.character(dia), " APP NÃO BAIXADOS-Qtde de clicks por hora", sep = ""))
+          
+          grid.arrange(plotd1 , plotd2, ncol=2, nrow=1)
+     }
+
+     dias<- unlist(distinct(dfAux[, 'day']))
+     lapply(dias, plotD)
+
+```
+     
+
+## Análise de correlação
+
+
+
+```{r correlacao01, echo=TRUE}
      library(corrgram)
      corrgram(dfDados)
-     dfDados %>% select(month) %>% distinct(month) #somente mês 11, é como uma constante
-     dfDados$month <- NULL 
 
+```
      
-# Transformar variáveis em categóricas
+
+## Variáveis categóricas
+
+Reconhecer as variáveis categóricas do dataset. Foram disponisibilizadas com o tipo inteiro
+
+
+```{r categorica, echo=TRUE}
+
      toFactor<- function(df, var) {
           for(v in var) df[,v]= factor(df[,v])
           return(df)
      }
-     VarToFactor<- c('app','device','os','channel','is_attributed', 'ip','day', 'weekday', 'hour')
+     
+     VarToFactor<- c('ip', 'app','device','os','channel','is_attributed', 'day', 'hour')
      dfDados<- toFactor(dfDados, VarToFactor)
-
-     # Divisão dos dados     
-     linhas <- sample(1:nrow(dfDados), 0.7 * nrow(dfDados))
-     dfTrain <- dfDados[linhas,]
-     dfTest <- dfDados[-linhas,]
-
 
 ```
 
+
+## Valores missing
+
+Checar e tratar valores missing
+
+
+```{r missing, echo=TRUE}
+# Tratar valores NA - Não tem valores missing
+     any(is.na(dfDados))
+
+```
+
+
+## Dados de teste e treino 
+
+
+```{r teste_treino, echo=TRUE}
+#Divisão dos dados de teste e treino
+     linhas <- sample(1:nrow(dfDados), 0.7 * nrow(dfDados))
+     dfTrain <- dfDados[linhas,]
+     dfTest <- dfDados[-linhas,]
+     
+```
+
+
 ## Balanceamento de classe
 
+O dataset está bastante desbalenceado em relação a classe is_attributed, variável 
+target.
 
-```{r balance}
+
+
+```{r balanceamento, echo=TRUE}
+#Balanceamento - Oversampling - is_attributed - muito mais registros com valor 0
      summary(dfTrain$is_attributed)
      prop.table(table(dfTrain$is_attributed))
      barplot(prop.table(table(dfTrain$is_attributed)))
@@ -103,24 +318,22 @@ any(is.na(dfDados))
                           os + 
                           channel +
                           day +
-                          weekday +
                           hour, 
                      data = dfTrain, seed = 1)$data
-     
+
      # Nova Proporção
      summary(dfTrainBal$is_attributed)
      prop.table(table(dfTrainBal$is_attributed))
      barplot(prop.table(table(dfTrainBal$is_attributed)))
      any(is.na(dfTrainBal))
 
-     # Balancear Teste     
+# Balancear Teste     
      dfTestBal <- ROSE(is_attributed ~ ip +
                             app +
                             device +
                             os + 
                             channel +
                             day +
-                            weekday +
                             hour, 
                        data = dfTest, seed = 1)$data
      summary(dfTestBal$is_attributed)
@@ -128,17 +341,16 @@ any(is.na(dfDados))
      barplot(prop.table(table(dfTestBal$is_attributed)))
      any(is.na(dfTestBal))
 
-
 ```
-
+          
 ## Treinando modelos
 
-OBS: O Radom Forest não aceita trabalhar com variáveis categóricas com mais de 53 níveis. Por 
-     esse motivo, algumas Variáveis foram ajustadas para o tipo character.
+OBS: O Radom Forest não aceita trabalhar com variáveis categóricas com mais de 53 níveis. Por esse motivo,
+algumas Variáveis foram ajustadas para o tipo character.
 
 
-```{r modelos}
-# Treinando modelos
+
+```{r treinando, echo=TRUE}
      library(C50) #algorítimo C5.0
      library(e1071) #naiveBayes
      library(randomForest)
@@ -157,7 +369,7 @@ OBS: O Radom Forest não aceita trabalhar com variáveis categóricas com mais d
      dfTrainBalRandom$device<- as.character(dfTrainBalRandom$device)
      dfTrainBalRandom$os<- as.character(dfTrainBalRandom$os)
      dfTrainBalRandom$channel<- as.character(dfTrainBalRandom$channel)
-     str(dfTrainBalRandom)
+     #str(dfTrainBalRandom)
      
      m.Random1 <- randomForest( is_attributed ~ ip +
                                   app +
@@ -165,16 +377,16 @@ OBS: O Radom Forest não aceita trabalhar com variáveis categóricas com mais d
                                   os +
                                   channel +
                                   day +
-                                  weekday +
                                   hour,
                              data = dfTrainBalRandom, 
                              ntree = 100, nodesize = 10)
-
 ```
+     
+## Predição e avaliação
 
-# Predição e avaliação
 
-```{r predicao}
+
+```{r predicao, echo=TRUE}
 # Predições
      p.Arvore1<- predict(m.Arvore1, dfTestBal)
      p.Naive1<- predict(m.Naive1, dfTestBal)
@@ -186,28 +398,34 @@ OBS: O Radom Forest não aceita trabalhar com variáveis categóricas com mais d
      dfTestBalRandom$os<- as.character(dfTestBalRandom$os)
      dfTestBalRandom$channel<- as.character(dfTestBalRandom$channel)
      p.Random1<- predict(m.Random1, dfTestBalRandom)
-     
+
+```
+```{r avalicacao, echo=TRUE}
 #Avaliando predições
      library(caret)
+```
+```{r avaliacao02, echo=TRUE}
      confusionMatrix(dfTestBal$is_attributed, p.Arvore1)
      confusionMatrix(dfTestBal$is_attributed, p.Naive1)
      confusionMatrix(dfTestBal$is_attributed, p.Random1)
      
 # ROC Curves com o ROSE     
-     roc.curve(dfTestBal$is_attributed, p.Arvore1, plotit = T, col = "red", add.roc = F)
-     roc.curve(dfTestBal$is_attributed, p.Naive1, plotit = T, col = "green", add.roc = T)
+     roc.curve(dfTestBal$is_attributed, p.Arvore1, plotit = T, col = "orange", add.roc = F)
+     roc.curve(dfTestBal$is_attributed, p.Naive1, plotit = T, col = "red", add.roc = T)
      roc.curve(dfTestBal$is_attributed, p.Random1, plotit = T, col = "blue", add.roc = T)
+
+options(warn = oldw)
 
 ```
 
-
 ## Conclusões
-     
-O moldelo baseado no Naive apresentou melhor acurácia, poderia seguir com um 
-refinamento do processo de otimização
 
-O C5.0 vem em seguida. Apresenta também como candidado a seguir com oma otimização
-     
-O modelo de Radom Forest não conseguiu rodar com as variáveis categóricas (factor)
-com mais de 53 níveis. Assim, algumas variáveis foram convertidas para caracter. isso
-pode ter influenciando no seu baixo desempenho.
+O moldelo baseado no Naive apresentou melhor acurácia, poderia seguir com um refinamento do processo de
+otimização.
+
+O C5.0 vem em seguida. Apresenta também como candidado a seguir com uma otimização.
+
+O modelo de Radom Forest não conseguiu rodar com as variáveis categóricas (factor) com mais de 53
+níveis. Assim, algumas variáveis foram convertidas para caracter. isso pode ter influenciando no seu baixo
+desempenho.
+
