@@ -16,9 +16,13 @@ knitr::opts_chunk$set(echo = TRUE)
 Projeto da DSA como parte do treiamento Big Data Analytics com R e Microsoft Azure Machine Learning.
 
 O projeto consiste na criação de modelo de Machine Learning que possa prever se um click para download de aplicativo é ou não fraudulento. Para esse trabalho foi utilizado a base de dados train_sample.csv, disponível no link https://www.kaggle.com/c/talkingdata-adtracking-fraud-detection/data. Maiores detalhe do desafio também pode ser obtido no site do Kaggle.
-Acesso o arquivo Readme para informações complementares.
+
+Acesse o arquivo Readme para informações complementares.
+
 
 ## Carga & visualização
+
+
 
 ```{r Dados, echo=TRUE}
 oldw <- getOption("warn")
@@ -307,6 +311,7 @@ target.
 
 
 
+
 ```{r balanceamento, echo=TRUE}
 #Balanceamento - Oversampling - is_attributed - muito mais registros com valor 0
      summary(dfTrain$is_attributed)
@@ -428,4 +433,9 @@ O C5.0 vem em seguida. Apresenta também como candidado a seguir com uma otimiza
 O modelo de Radom Forest não conseguiu rodar com as variáveis categóricas (factor) com mais de 53
 níveis. Assim, algumas variáveis foram convertidas para caracter. isso pode ter influenciando no seu baixo
 desempenho.
+
+OBS: aqui não se fez um trabalho expoloratório com os dados balanceados por se tratar de um projeto acadêmico,
+cuja finalidade maior é foi o exercício inicial da análise sobre dados. Essa exploração não seria nos dados de
+treino ou teste, seria em dataframe específico para esse fim.
+
 
